@@ -40,6 +40,7 @@ e.csv is chinese hamster  - 30 MB - takes 30 min to run - use MT_iCHOv1_final
 
 import os
 from datetime import datetime
+import csv
 
 input_files = ["a.csv", "b.csv", "c.csv", "d.csv", "e.csv"]
 organism = ["human", "mouse", "rat", "chinese hamster"]
@@ -103,6 +104,12 @@ for input_file, model in org_model.items():
                     error_code = result.close()
                     # print(error_code)
                     input_output.append((command, total_time))
+
+
+file = open('command_runtimes.csv', 'w+', newline='')
+with file:
+    write = csv.writer(file)
+    write.writerows(input_output)
 
 
 
