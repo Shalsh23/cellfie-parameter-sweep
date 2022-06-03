@@ -39,6 +39,7 @@ e.csv is chinese hamster  - 30 MB - takes 30 min to run - use MT_iCHOv1_final
 """
 
 import os
+from datetime import datetime
 
 input_files = ["a.csv", "b.csv", "c.csv", "d.csv", "e.csv"]
 organism = ["human", "mouse", "rat", "chinese hamster"]
@@ -53,7 +54,7 @@ mem = "10g"
 # map
 org_model = {"a.csv":"MT_recon_2_2_entrez.mat", "b.csv":"MT_recon_2_2_entrez.mat", "c.csv":"MT_recon_2_2_entrez.mat", "d.csv":"MT_iCHOv1_final.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_inesMouseModel.mat" }
 
-base_command = f" docker run -m {mem} -v {path_test_data}:/data -v {path_cellfie_input}:/input -w /input hmasson/cellfie-standalone-app:v2"
+base_command = f"docker run -i -m {mem} -v {path_test_data}:/data -v {path_cellfie_input}:/input -w /input hmasson/cellfie-standalone-app:v4"
 
 threshold_type = ["global", "local"]
 percentile_or_value = ["percentile", "value"]
@@ -62,10 +63,10 @@ local_threshold_type = ["minmaxmean", "mean"]
 """
 measure file dimensions
 
-head -1 {input_file} | sed 's/[^,]//g' | wc -c
+{head -1 {input_file} | sed 's/[^,]//g' | wc -c} - 1
 """
 
-file_dimensions = {"a.csv":7, "b.csv":7, "c.csv":65, "d.csv":190, "e.csv":97}
+file_dimensions = {"a.csv":6, "b.csv":6, "c.csv":64, "d.csv":189, "e.csv":96}
 command_list = []
 
 # n = 0
@@ -89,13 +90,20 @@ for input_file, model in org_model.items():
                         # n+=1
 
                 for c in command_list:
-                    command = c + f" minmaxmean 25 75 /data"
+                    command = c + f" minmaxmean 25 75 /data 2>&1"
                     print("\n" + command)
-                    result = os.popen(command)
+                    start_time = datetime.now()
+                    result = os.popen(command, 'r')
+                    # print(result)
+                    output = result.read()
+                    end_time = datetime.now()
+                    total_time = end_time-start_time
+                    print("\n total time ", total_time)
+                    # print(output)
                     error_code = result.close()
-                    print(error_code)
-                    # output = result.read()
-                    # input_output.append((command, output))
+                    # print(error_code)
+                    input_output.append((command, total_time))
+
 
 
 # print(type(input_output))
