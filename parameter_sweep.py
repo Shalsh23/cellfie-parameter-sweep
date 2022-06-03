@@ -92,14 +92,14 @@ for input_file, model in org_model.items():
 
                 for c in command_list:
                     command = c + f" minmaxmean 25 75 /data 2>&1"
-                    print("\n" + command)
+                    # print("\n" + command)
                     start_time = datetime.now()
                     result = os.popen(command, 'r')
                     # print(result)
                     output = result.read()
                     end_time = datetime.now()
                     total_time = end_time-start_time
-                    print("\n total time ", total_time)
+                    # print("\n total time ", total_time)
                     # print(output)
                     error_code = result.close()
                     # print(error_code)
