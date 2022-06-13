@@ -34,9 +34,13 @@ MT_recon_2_2_entrez = "MT_recon_2_2_entrez.mat"
 
 all input data is human, except d/e.csv
 for human data, use MT_recon_2_2_entrez
-e.csv is mouse - use (not sure what authoritative model is) MT_iMM1415, MT_inesMouseModel
-d.csv is chinese hamster  - 30 MB - takes 30 min to run - use MT_iCHOv1_final
+d.csv is mouse - use (not sure what authoritative model is) MT_iMM1415, MT_inesMouseModel
+e.csv is chinese hamster  - 30 MB - takes 30 min to run - use MT_iCHOv1_final
 """
+
+import os
+from datetime import datetime
+import csv
 
 input_files = ["a.csv", "b.csv", "c.csv", "d.csv", "e.csv"]
 organism = ["human", "mouse", "rat", "chinese hamster"]
@@ -51,7 +55,7 @@ mem = "10g"
 # map
 org_model = {"a.csv":"MT_recon_2_2_entrez.mat", "b.csv":"MT_recon_2_2_entrez.mat", "c.csv":"MT_recon_2_2_entrez.mat", "d.csv":"MT_iCHOv1_final.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_inesMouseModel.mat" }
 
-command = f"time docker run -it -m ${mem} -v ${path_test_data}:/data -v ${path_cellfie_input}:/input -w /input hmasson/cellfie-standalone-app:v2"
+base_command = f"docker run -i -m {mem} -v {path_test_data}:/data -v {path_cellfie_input}:/input -w /input hmasson/cellfie-standalone-app:v4"
 
 threshold_type = ["global", "local"]
 percentile_or_value = ["percentile", "value"]
@@ -60,20 +64,56 @@ local_threshold_type = ["minmaxmean", "mean"]
 """
 measure file dimensions
 
-head -1 {input_file} | sed 's/[^,]//g' | wc -c
+{head -1 {input_file} | sed 's/[^,]//g' | wc -c} - 1
 """
 
-file_dimensions = {"a.csv":7, "b.csv":7, "c.csv":65, "d.csv":190, "e.csv":97}
+file_dimensions = {"a.csv":6, "b.csv":6, "c.csv":64, "d.csv":189, "e.csv":96}
+command_list = []
 
-for input_file, model in org_model.items():
-    command += f" /data/${input_file} ${file_dimensions.get(input_file)} ${model}"
-    for threshold in threshold_type:
-        if threshold == "global":
-            for pv in percentile_or_value:
-                if pv == "percentile":
-                    for p in range(0, 110, 10):
-                        command =  f"${threshold_type} ${pv}"
+# n = 0
 
+# input_output = []
+
+with open('command_output.csv', 'w') as output, open('command_runtimes.csv', 'w') as runtimes:
+    for input_file, model in org_model.items():
+        command1 = base_command +  f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
+        for threshold in threshold_type:
+            if threshold == "global":
+                for pv in percentile_or_value:
+                    if pv == "percentile":
+                        for p in range(0, 110, 10):
+                            command2 = command1 +  f" {threshold} {pv} {p}"
+                            command_list.append(command2)
+                            # n+=1
+                    elif pv == "value":
+                        for v in range(0, 5, 100):
+                            command2 = command1 + f" {threshold} {pv} {v}"
+                            command_list.append(command2)
+                            # n+=1
+
+                    for c in command_list:
+                        command = c + f" minmaxmean 25 75 /data 2>&1"
+                        start_time = datetime.now()
+                        result_buf = os.popen(command, 'r')
+                        result = result_buf.read()
+                        end_time = datetime.now()
+                        total_time = str((end_time-start_time).total_seconds())
+                        error_code = result_buf.close()
+                        runtimes.writelines([command, ",", total_time, "\n"])
+                        # print(type(total_time))
+                        output.writelines([command, ",", result, "\n"])
+
+
+# file = open('command_runtimes.csv', 'w+', newline='')
+# with file:
+#     write = csv.writer(file)
+#     write.writerows(input_output)
+
+
+
+# print(type(input_output))
+# print("n= ", n)
+# print("list size = ", len(command_list))
 
 
 
