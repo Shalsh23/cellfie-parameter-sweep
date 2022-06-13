@@ -72,44 +72,42 @@ command_list = []
 
 # n = 0
 
-input_output = []
+# input_output = []
 
-for input_file, model in org_model.items():
-    command1 = base_command +  f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
-    for threshold in threshold_type:
-        if threshold == "global":
-            for pv in percentile_or_value:
-                if pv == "percentile":
-                    for p in range(0, 110, 10):
-                        command2 = command1 +  f" {threshold} {pv} {p}"
-                        command_list.append(command2)
-                        # n+=1
-                elif pv == "value":
-                    for v in range(0, 1000, 50):
-                        command2 = command1 + f" {threshold} {pv} {v}"
-                        command_list.append(command2)
-                        # n+=1
+with open('command_output.csv', 'w') as output, open('command_runtimes.csv', 'w') as runtimes:
+    for input_file, model in org_model.items():
+        command1 = base_command +  f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
+        for threshold in threshold_type:
+            if threshold == "global":
+                for pv in percentile_or_value:
+                    if pv == "percentile":
+                        for p in range(0, 110, 10):
+                            command2 = command1 +  f" {threshold} {pv} {p}"
+                            command_list.append(command2)
+                            # n+=1
+                    elif pv == "value":
+                        for v in range(0, 5, 100):
+                            command2 = command1 + f" {threshold} {pv} {v}"
+                            command_list.append(command2)
+                            # n+=1
 
-                for c in command_list:
-                    command = c + f" minmaxmean 25 75 /data 2>&1"
-                    # print("\n" + command)
-                    start_time = datetime.now()
-                    result = os.popen(command, 'r')
-                    # print(result)
-                    output = result.read()
-                    end_time = datetime.now()
-                    total_time = end_time-start_time
-                    # print("\n total time ", total_time)
-                    # print(output)
-                    error_code = result.close()
-                    # print(error_code)
-                    input_output.append((command, total_time))
+                    for c in command_list:
+                        command = c + f" minmaxmean 25 75 /data 2>&1"
+                        start_time = datetime.now()
+                        result_buf = os.popen(command, 'r')
+                        result = result_buf.read()
+                        end_time = datetime.now()
+                        total_time = str((end_time-start_time).total_seconds())
+                        error_code = result_buf.close()
+                        runtimes.writelines([command, ",", total_time, "\n"])
+                        # print(type(total_time))
+                        output.writelines([command, ",", result, "\n"])
 
 
-file = open('command_runtimes.csv', 'w+', newline='')
-with file:
-    write = csv.writer(file)
-    write.writerows(input_output)
+# file = open('command_runtimes.csv', 'w+', newline='')
+# with file:
+#     write = csv.writer(file)
+#     write.writerows(input_output)
 
 
 
