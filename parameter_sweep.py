@@ -40,7 +40,6 @@ e.csv is chinese hamster  - 30 MB - takes 30 min to run - use MT_iCHOv1_final
 
 import os
 from datetime import datetime
-import csv
 
 input_files = ["a.csv", "b.csv", "c.csv", "d.csv", "e.csv"]
 organism = ["human", "mouse", "rat", "chinese hamster"]
@@ -70,50 +69,33 @@ measure file dimensions
 file_dimensions = {"a.csv":6, "b.csv":6, "c.csv":64, "d.csv":189, "e.csv":96}
 command_list = []
 
-# n = 0
-
-# input_output = []
-
 with open('command_output.csv', 'w') as output, open('command_runtimes.csv', 'w') as runtimes:
     for input_file, model in org_model.items():
         command1 = base_command +  f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
         for threshold in threshold_type:
-            if threshold == "global":
-                for pv in percentile_or_value:
-                    if pv == "percentile":
-                        for p in range(0, 110, 10):
-                            command2 = command1 +  f" {threshold} {pv} {p}"
-                            command_list.append(command2)
-                            # n+=1
-                    elif pv == "value":
-                        for v in range(0, 5, 100):
-                            command2 = command1 + f" {threshold} {pv} {v}"
-                            command_list.append(command2)
-                            # n+=1
-
-                    for c in command_list:
-                        command = c + f" minmaxmean 25 75 /data 2>&1"
-                        start_time = datetime.now()
-                        result_buf = os.popen(command, 'r')
-                        result = result_buf.read()
-                        end_time = datetime.now()
-                        total_time = str((end_time-start_time).total_seconds())
-                        error_code = result_buf.close()
-                        runtimes.writelines([command, ",", total_time, "\n"])
-                        # print(type(total_time))
-                        output.writelines([command, ",", result, "\n"])
-
-
-# file = open('command_runtimes.csv', 'w+', newline='')
-# with file:
-#     write = csv.writer(file)
-#     write.writerows(input_output)
+            for pv in percentile_or_value:
+                if pv == "percentile":
+                    for p in range(10, 110, 10):
+                        command2 = command1 +  f" {threshold} {pv} {p} minmaxmean 25 75 /data 2>&1"
+                        command_list.append(command2)
+                elif pv == "value":
+                    for v in range(5, 25, 5):
+                        command2 = command1 + f" {threshold} {pv} {v} minmaxmean 5 5 /data 2>&1"
+                        command_list.append(command2)
 
 
 
-# print(type(input_output))
-# print("n= ", n)
-# print("list size = ", len(command_list))
+    for command in command_list:
+        print(command + "\n")
+        start_time = datetime.now()
+        result_buf = os.popen(command, 'r')
+        result = result_buf.read()
+        end_time = datetime.now()
+        total_time = str((end_time-start_time).total_seconds())
+        error_code = result_buf.close()
+        runtimes.writelines([command, ",", total_time, "\n"])
+        output.writelines([command, ",", result, "\n"])
+
 
 
 
@@ -121,4 +103,7 @@ with open('command_output.csv', 'w') as output, open('command_runtimes.csv', 'w'
 Command to run cellfie from terminal:
 
 "time docker run -it -m 10g -v /Users/shalkishrivastava/renci/ImmCellFIE/test-data:/data -v /Users/shalkishrivastava/renci/ImmCellFIE/fuse-tool-cellfie/CellFie/input:/input -w /input hmasson/cellfie-standalone-app:v2 /data/e.csv 96 MT_iCHOv1_final.mat global percentile 50 minmaxmean 25 75 /data"
+
+"time docker run -it -m 10g -v /Users/shalkishrivastava/renci/ImmCellFIE/test-data:/data -v /Users/shalkishrivastava/renci/ImmCellFIE/fuse-tool-cellfie/CellFie/input:/input -w /input hmasson/cellfie-standalone-app:v2 /data/e.csv 96 MT_iCHOv1_final.mat global value 5 minmaxmean 5 5 /data"
+
 """
