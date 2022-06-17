@@ -1,4 +1,3 @@
-
 """
 parameters:
 
@@ -47,12 +46,22 @@ models = ["recon", "recon v1", "recon v2", "recon v2.2"]
 
 # local path variables
 path_test_data = "/Users/shalkishrivastava/renci/ImmCellFIE/test-data"
-path_cellfie_input = "/Users/shalkishrivastava/renci/ImmCellFIE/fuse-tool-cellfie/CellFie/input"
+path_cellfie_input = (
+    "/Users/shalkishrivastava/renci/ImmCellFIE/fuse-tool-cellfie/CellFie/input"
+)
 
 # cellfie parameters
 mem = "10g"
 # map
-org_model = {"a.csv":"MT_recon_2_2_entrez.mat", "b.csv":"MT_recon_2_2_entrez.mat", "c.csv":"MT_recon_2_2_entrez.mat", "d.csv":"MT_iCHOv1_final.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_iMM1415.mat", "e.csv":"MT_inesMouseModel.mat" }
+org_model = {
+    "a.csv": "MT_recon_2_2_entrez.mat",
+    "b.csv": "MT_recon_2_2_entrez.mat",
+    "c.csv": "MT_recon_2_2_entrez.mat",
+    "d.csv": "MT_iCHOv1_final.mat",
+    "e.csv": "MT_iMM1415.mat",
+    "e.csv": "MT_iMM1415.mat",
+    "e.csv": "MT_inesMouseModel.mat",
+}
 
 base_command = f"docker run -i -m {mem} -v {path_test_data}:/data -v {path_cellfie_input}:/input -w /input hmasson/cellfie-standalone-app:v4"
 
@@ -66,37 +75,43 @@ measure file dimensions
 {head -1 {input_file} | sed 's/[^,]//g' | wc -c} - 1
 """
 
-file_dimensions = {"a.csv":6, "b.csv":6, "c.csv":64, "d.csv":189, "e.csv":96}
+file_dimensions = {"a.csv": 6, "b.csv": 6, "c.csv": 64, "d.csv": 189, "e.csv": 96}
 command_list = []
 
-with open('command_output.csv', 'w') as output, open('command_runtimes.csv', 'w') as runtimes:
+with open("command_output.csv", "w") as output, open(
+    "command_runtimes.csv", "w"
+) as runtimes:
     for input_file, model in org_model.items():
-        command1 = base_command +  f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
+        command1 = (
+            base_command
+            + f" /data/{input_file} {file_dimensions.get(input_file)} {model}"
+        )
         for threshold in threshold_type:
             for pv in percentile_or_value:
                 if pv == "percentile":
                     for p in range(10, 110, 10):
-                        command2 = command1 +  f" {threshold} {pv} {p} minmaxmean 25 75 /data 2>&1"
+                        command2 = (
+                            command1
+                            + f" {threshold} {pv} {p} minmaxmean 25 75 /data 2>&1"
+                        )
                         command_list.append(command2)
                 elif pv == "value":
                     for v in range(5, 25, 5):
-                        command2 = command1 + f" {threshold} {pv} {v} minmaxmean 5 5 /data 2>&1"
+                        command2 = (
+                            command1 + f" {threshold} {pv} {v} minmaxmean 5 5 /data 2>&1"
+                        )
                         command_list.append(command2)
-
-
 
     for command in command_list:
         print(command + "\n")
         start_time = datetime.now()
-        result_buf = os.popen(command, 'r')
+        result_buf = os.popen(command, "r")
         result = result_buf.read()
         end_time = datetime.now()
-        total_time = str((end_time-start_time).total_seconds())
+        total_time = str((end_time - start_time).total_seconds())
         error_code = result_buf.close()
         runtimes.writelines([command, ",", total_time, "\n"])
         output.writelines([command, ",", result, "\n"])
-
-
 
 
 """
